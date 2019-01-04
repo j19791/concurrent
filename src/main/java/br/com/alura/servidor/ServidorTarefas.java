@@ -3,6 +3,8 @@ package br.com.alura.servidor;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ServidorTarefas {
 
@@ -32,6 +34,17 @@ public class ServidorTarefas {
 		 * }
 		 */
 
+		// agora utilizando concurrent
+		// ExecutorService poolDeThreads = Executors.newFixedThreadPool(5); // p/ melhor
+		// uso dos recursos, utilizando um
+		// pool de threads (maximo 5)
+
+		ExecutorService poolDeThreads = Executors.newCachedThreadPool();// cresce/ou diminui dinamicamente. descarta as
+																		// threads que ficam ociosas por mais de 60
+																		// segundos
+
+		// newSingleThreadExecutor : apenas 1 thread
+
 		// utilizando threads p/ q os clientes n]ao fiquem travados
 		while (true) {
 
@@ -39,7 +52,9 @@ public class ServidorTarefas {
 			System.out.println("Aceitando novo cliente na porta " + socket.getPort());// as cmunicações entre os
 																						// clientes são feitas em portas
 																						// dedicadas
-			new Thread(new DistribuirTarefas(socket)).start();// nosso servidor não trava mais e aceita vários clientes.
+			// new Thread(new DistribuirTarefas(socket)).start();// nosso servidor não trava
+			// mais e aceita vários clientes.
+			poolDeThreads.execute(new DistribuirTarefas(socket)); //
 		}
 	}
 
