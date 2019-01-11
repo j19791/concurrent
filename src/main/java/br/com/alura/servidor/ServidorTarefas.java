@@ -22,7 +22,8 @@ public class ServidorTarefas {
 	public ServidorTarefas() throws IOException {
 		System.out.println("---- Iniciando Servidor ----");
 		this.servidor = new ServerSocket(12345);
-		this.threadPool = Executors.newCachedThreadPool();
+		this.threadPool = Executors.newFixedThreadPool(4, new FabricaDeThreads());// usando o tratamento de erros de
+																					// thread mais adequado
 
 		// remova as três linhas anteriores do método rodar()
 
@@ -36,8 +37,9 @@ public class ServidorTarefas {
 				Socket socket = servidor.accept();
 				System.out.println("Aceitando novo cliente na porta " + socket.getPort());
 
-				DistribuirTarefas distribuirTarefas = new DistribuirTarefas(socket, this);// this: passando o próprio
-																							// servidor de Taredas
+				DistribuirTarefas distribuirTarefas = new DistribuirTarefas(threadPool, socket, this);// this: passando
+																										// o próprio
+				// servidor de Taredas
 				threadPool.execute(distribuirTarefas);
 			} catch (SocketException e) {
 				System.out.println("SocketException, está rodando? " + this.estaRodando);
