@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -19,15 +21,21 @@ public class ServidorTarefas {
 	// vai diretamente na memória dessa variável.O acesso funciona de
 	// maneira atômica, como se fosse sincronizado. Volatile
 
+	private BlockingQueue<String> filaComandos;
+
 	public ServidorTarefas() throws IOException {
 		System.out.println("---- Iniciando Servidor ----");
 		this.servidor = new ServerSocket(12345);
-		this.threadPool = Executors.newFixedThreadPool(4, new FabricaDeThreads());// usando o tratamento de erros de
-																					// thread mais adequado
+		this.threadPool = Executors.newCachedThreadPool(new FabricaDeThreads());// usando o tratamento de erros de
+																				// thread mais adequado
 
 		// remova as três linhas anteriores do método rodar()
 
 		this.estaRodando.set(true);
+
+		this.filaComandos = new ArrayBlockingQueue<>(2);// capacidade de 2 elementos na fila
+
+		iniciarConsumidores();
 	}
 
 	public void rodar() throws IOException {
@@ -37,8 +45,9 @@ public class ServidorTarefas {
 				Socket socket = servidor.accept();
 				System.out.println("Aceitando novo cliente na porta " + socket.getPort());
 
-				DistribuirTarefas distribuirTarefas = new DistribuirTarefas(threadPool, socket, this);// this: passando
-																										// o próprio
+				DistribuirTarefas distribuirTarefas = new DistribuirTarefas(threadPool, filaComandos, socket, this);// this:
+																													// passando
+				// o próprio
 				// servidor de Taredas
 				threadPool.execute(distribuirTarefas);
 			} catch (SocketException e) {
@@ -60,6 +69,14 @@ public class ServidorTarefas {
 
 		servidor.rodar();
 
+	}
+
+	private void iniciarConsumidores() {
+		int qtdConsumidores = 2;
+		for (int i = 0; i < qtdConsumidores; i++) {
+			TarefaConsumir tarefa = new TarefaConsumir(filaComandos);
+			this.threadPool.execute(tarefa);
+		}
 	}
 
 }
